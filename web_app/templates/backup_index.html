@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmolVLM AI Vision Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 120px);
+            gap: 1rem;
+            padding: 1rem;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .image-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .text-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .upload-section {
+            margin-bottom: 1rem;
+        }
+        
+        .upload-area {
+            border: 3px dashed #3498db;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(52, 152, 219, 0.05);
+        }
+        
+        .upload-area:hover {
+            border-color: #2980b9;
+            background: rgba(52, 152, 219, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .upload-area.dragover {
+            border-color: #27ae60;
+            background: rgba(39, 174, 96, 0.1);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .url-section {
+            margin: 1rem 0;
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .url-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .url-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        
+        .image-display {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+        
+        .image-display img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        
+        .placeholder {
+            color: #95a5a6;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+        
+        .prompt-section {
+            margin-bottom: 1rem;
+        }
+        
+        .prompt-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .prompt-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .output-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .output-area {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            background: #f8f9fa;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            position: relative;
+        }
+        
+        .typing-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 1.2em;
+            background: #3498db;
+            animation: blink 1s infinite;
+            margin-left: 2px;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        .status {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #cce7ff;
+            color: #004085;
+            border: 1px solid #b3d7ff;
+        }
+        
+        .quick-prompts {
+            margin: 1rem 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .quick-prompt {
+            padding: 0.4rem 0.8rem;
+            background: rgba(52, 152, 219, 0.1);
+            color: #2980b9;
+            border: 1px solid #3498db;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .quick-prompt:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 SmolVLM AI Vision Demo</h1>
+        <p>Upload an image and watch AI describe it in real-time</p>
+    </div>
+    
+    <div class="container">
+        <!-- Image Panel -->
+        <div class="panel image-panel">
+            <div class="upload-section">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <p>📸 Click to upload an image or drag & drop</p>
+                    <p style="font-size: 0.9rem; color: #7f8c8d; margin-top: 0.5rem;">
+                        Supports JPG, PNG, GIF up to 16MB
+                    </p>
+                </div>
+                <input type="file" id="fileInput" class="file-input" accept="image/*">
+            </div>
+            
+            <div class="url-section">
+                <input type="text" class="url-input" id="urlInput" placeholder="Or enter image URL...">
+                <button class="btn" onclick="loadFromUrl()">Load</button>
+            </div>
+            
+            <div class="image-display" id="imageDisplay">
+                <div class="placeholder">No image selected</div>
+            </div>
+        </div>
+        
+        <!-- Text Panel -->
+        <div class="panel text-panel">
+            <div class="prompt-section">
+                <label for="promptInput" style="font-weight: 600; margin-bottom: 0.5rem; display: block;">
+                    💭 Prompt:
+                </label>
+                <textarea 
+                    class="prompt-input" 
+                    id="promptInput" 
+                    placeholder="Describe this image in detail."
+                >Describe this image in detail.</textarea>
+                
+                <div class="quick-prompts">
+                    <span class="quick-prompt" onclick="setPrompt('Describe this image in detail.')">
+                        🔍 Detailed Description
+                    </span>
+                    <span class="quick-prompt" onclick="setPrompt('What objects can you see in this image?')">
+                        🎯 Identify Objects
+                    </span>
+                    <span class="quick-prompt" onclick="setPrompt('What is the mood or atmosphere of this image?')">
+                        🎨 Mood & Atmosphere
+                    </span>
+                    <span class="quick-prompt" onclick="setPrompt('Read any text visible in this image.')">
+                        📝 Read Text
+                    </span>
+                </div>
+                
+                <button class="btn" onclick="generateDescription()" id="generateBtn" style="width: 100%; margin-top: 1rem;">
+                    ✨ Generate Description
+                </button>
+            </div>
+            
+            <div class="output-section">
+                <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">
+                    🤖 AI Response:
+                </label>
+                <div class="output-area" id="outputArea">
+                    Ready to analyze images! Upload an image and click "Generate Description" to begin.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentImageUploaded = false;
+        let eventSource = null;
+        
+        // File upload handling
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                uploadImage(file);
+            }
+        });
+        
+        // Drag and drop handling
+        const uploadArea = document.querySelector('.upload-area');
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadImage(files[0]);
+            }
+        });
+        
+        function uploadImage(file) {
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            showStatus('Uploading image...', 'info');
+            
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayImage(data.image_data);
+                    currentImageUploaded = true;
+                    showStatus('Image uploaded successfully!', 'success');
+                } else {
+                    showStatus(`Error: ${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                showStatus(`Upload failed: ${error.message}`, 'error');
+            });
+        }
+        
+        function loadFromUrl() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) {
+                showStatus('Please enter a valid URL', 'error');
+                return;
+            }
+            
+            showStatus('Loading image from URL...', 'info');
+            
+            fetch('/url_image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({url: url})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayImage(data.image_data);
+                    currentImageUploaded = true;
+                    showStatus('Image loaded successfully!', 'success');
+                } else {
+                    showStatus(`Error: ${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                showStatus(`Failed to load image: ${error.message}`, 'error');
+            });
+        }
+        
+        function displayImage(imageSrc) {
+            const imageDisplay = document.getElementById('imageDisplay');
+            imageDisplay.innerHTML = `<img src="${imageSrc}" alt="Uploaded image">`;
+        }
+        
+        function setPrompt(prompt) {
+            document.getElementById('promptInput').value = prompt;
+        }
+        
+        function generateDescription() {
+            if (!currentImageUploaded) {
+                showStatus('Please upload an image first!', 'error');
+                return;
+            }
+            
+            const prompt = document.getElementById('promptInput').value.trim();
+            if (!prompt) {
+                showStatus('Please enter a prompt!', 'error');
+                return;
+            }
+            
+            const outputArea = document.getElementById('outputArea');
+            const generateBtn = document.getElementById('generateBtn');
+            
+            // Reset output area
+            outputArea.innerHTML = '';
+            generateBtn.disabled = true;
+            generateBtn.textContent = '🔄 Generating...';
+            
+            // Close existing EventSource
+            if (eventSource) {
+                eventSource.close();
+            }
+            
+            // Start streaming
+            eventSource = new EventSource(`/generate?prompt=${encodeURIComponent(prompt)}`);
+            
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.error) {
+                    showStatus(`Error: ${data.error}`, 'error');
+                    eventSource.close();
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = '✨ Generate Description';
+                    return;
+                }
+                
+                if (data.complete) {
+                    eventSource.close();
+                    generateBtn.disabled = false;
+                    generateBtn.textContent = '✨ Generate Description';
+                    // Remove typing cursor
+                    const cursor = outputArea.querySelector('.typing-cursor');
+                    if (cursor) cursor.remove();
+                    showStatus('Generation completed!', 'success');
+                    return;
+                }
+                
+                if (data.text) {
+                    // Remove existing cursor
+                    const existingCursor = outputArea.querySelector('.typing-cursor');
+                    if (existingCursor) existingCursor.remove();
+                    
+                    // Append new text
+                    outputArea.innerHTML += data.text;
+                    
+                    // Add typing cursor
+                    const cursor = document.createElement('span');
+                    cursor.className = 'typing-cursor';
+                    outputArea.appendChild(cursor);
+                    
+                    // Auto-scroll to bottom
+                    outputArea.scrollTop = outputArea.scrollHeight;
+                }
+            };
+            
+            eventSource.onerror = function(event) {
+                showStatus('Connection error. Please try again.', 'error');
+                eventSource.close();
+                generateBtn.disabled = false;
+                generateBtn.textContent = '✨ Generate Description';
+            };
+        }
+        
+        function showStatus(message, type) {
+            const existing = document.querySelector('.status');
+            if (existing) existing.remove();
+            
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            
+            const container = document.querySelector('.text-panel');
+            container.insertBefore(status, container.firstChild);
+            
+            // Auto-remove after 3 seconds for success/info messages
+            if (type !== 'error') {
+                setTimeout(() => {
+                    if (status.parentNode) {
+                        status.remove();
+                    }
+                }, 3000);
+            }
+        }
+        
+        // Load example image on page load
+        window.addEventListener('load', function() {
+            // Optionally load a demo image
+            document.getElementById('urlInput').value = 'https://cdn.britannica.com/61/93061-050-99147DCE/Statue-of-Liberty-Island-New-York-Bay.jpg';
+        });
+    </script>
+</body>
+</html>
